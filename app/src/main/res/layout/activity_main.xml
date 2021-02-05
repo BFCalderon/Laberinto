@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <com.example.laberinto.Canvas
+        android:id="@+id/canvasview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:weightSum="1"
+        android:layout_margin="10dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_weight="0.5">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:gravity="center"
+                android:text="ACELEROMETRO"/>
+            <TextView
+                android:id="@+id/acelerometro_x"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+            <TextView
+                android:id="@+id/acelerometro_y"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+            <TextView
+                android:id="@+id/acelerometro_z"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_weight="0.5">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:gravity="center"
+                android:text="GIROSCOPIO"/>
+            <TextView
+                android:id="@+id/giroscopio_x"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+            <TextView
+                android:id="@+id/giroscopio_y"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+            <TextView
+                android:id="@+id/giroscopio_z"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:textColor="@color/gray"
+                android:text="asdgfasdfgd"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
