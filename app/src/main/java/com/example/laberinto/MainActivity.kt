@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         val adminSensor: SensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
 
-        adminSensor.getSensorList(Sensor.TYPE_GYROSCOPE).first()?.let { sensor->
+        adminSensor.getSensorList(TYPE_GYROSCOPE).first()?.let { sensor->
             adminSensor.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
         }
 
