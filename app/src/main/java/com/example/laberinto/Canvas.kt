@@ -1,57 +1,84 @@
 package com.example.laberinto
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PointF
+import android.graphics.RectF
 import android.util.AttributeSet
-import android.view.MotionEvent
-import android.view.MotionEvent.*
 import android.view.View
 import android.view.ViewTreeObserver
-import kotlin.math.*
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class Canvas(context: Context, attrs: AttributeSet): View(context, attrs) {
 
     private var ballPosition: PointF? = null
-    private val paint = Paint().apply { color = Color.RED }
-    private val paintPath = Paint().apply { strokeWidth = 10f; style = Paint.Style.STROKE; color = Color.BLACK }
-
-    private var lastCoor: PointF = PointF()
-    private val labyrinthPath = Path()
-    private var sidePaths = listOf<Path>()
-    private var colorPoints = arrayListOf<PointF>()
-    private val colors = listOf(Color.MAGENTA, Color.BLUE, Color.YELLOW, Color.CYAN, Color.GREEN, Color.DKGRAY, Color.BLACK)
-    private val colorsPaint = colors.map { Paint().apply { color = it } }
-    private var samplePoints = arrayListOf<PointF>()
-    private val transparentPaint = Paint().apply { color = Color.HSVToColor(50, floatArrayOf(150f, 150f, 150f)) }
+    private lateinit var colorPoints: ArrayList<PointF>
+    private val colors = listOf(Color.WHITE, Color.BLUE, Color.GREEN, Color.CYAN, Color.YELLOW, Color.DKGRAY, Color.BLACK)
+    private lateinit var rana: Bitmap
+    private lateinit var argolla: Bitmap
+    var score = 0
+    private var lastIndex = -1
 
     init {
         setBackgroundColor(Color.WHITE)
+        this.waitForLayout {
+            ballPosition = PointF(width/2f, height*0.9f)
+            colorPoints = arrayListOf(
+                PointF(75f, 500f),
+                PointF(width/2f, height*0.4f),
+                PointF(width/2f, height*0.3f),
+                PointF(width/2f, height*0.2f)
+            )
+            rana = getScaleBitmapFromResourcesPNGAndJPG(R.drawable.rana, 100f)
+            argolla = getScaleBitmapFromResourcesPNGAndJPG(R.drawable.argolla, 100f)
+        }
+    }
+
+    /**
+     * Funcion que crea un bitmap a partir de una imagen
+     */
+    private fun getScaleBitmapFromResourcesPNGAndJPG(imageResource: Int, widthInMeters: Float): Bitmap {
+        val bitmap = BitmapFactory.decodeResource(resources, imageResource)
+        val factorScale = bitmap!!.width.toFloat()/bitmap.height.toFloat()
+        val scaledWidth = widthInMeters*factorScale
+        return Bitmap.createScaledBitmap(bitmap, scaledWidth.toInt(), widthInMeters.toInt(), false)
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas?.run {
             colorPoints.forEachIndexed { index, pointF ->
-                drawCircle(pointF.x, pointF.y, 50f, colorsPaint[index])
-            }
-            //samplePoints.map { drawCircle(it.x, it.y, 25f, transparentPaint) }
-
-            ballPosition?.let {
-                drawCircle(it.x, it.y, 25f, paint)
-            }
-
-            if(sidePaths.isEmpty()){
-                drawPath(labyrinthPath, paintPath)
-            } else {
-                sidePaths.map {
-                    drawPath(it, paintPath)
+                if(index == 0){
+                    drawCircle(pointF.x, pointF.y, 50f, Paint().apply { color = colors[index] })
+                } else {
+                    drawBitmap(rana, pointF.x - 50, pointF.y - 50, null)
+                }
+                if(index == 0) {
+                    drawText("RESET", pointF.x + 70, 515f, Paint().apply {
+                        textSize = 50f
+                        color = Color.WHITE
+                    })
                 }
             }
+            ballPosition?.let {
+                drawBitmap(argolla, it.x-50, it.y-50,null)
+            }
+
+            drawRoundRect(RectF(50f,250f,500f,350f),20f,20f, Paint().apply {
+                color = Color.BLACK
+                alpha = 200
+            })
+            drawText("PUNTAJE: $score", 70f, 315f, Paint().apply {
+                textSize = 50f
+                color = Color.WHITE
+            })
         }
     }
-
-    private var lastBallPosition = PointF()
 
     fun moveBall(factorPosition: PointF) {
         ballPosition?.let {ballPosition->
@@ -66,25 +93,21 @@ class Canvas(context: Context, attrs: AttributeSet): View(context, attrs) {
                 ballPosition.y += factorPosition.y
                 when {
                     (ballPosition.y > alto) -> ballPosition.y = alto.toFloat()
-                    (ballPosition.y < 0) -> ballPosition.y = 0f
+                    (ballPosition.y < height*0.1f) -> ballPosition.y = height*0.1f
                 }
             }
             for (color in colorPoints) {
                 if (isSelected(color, ballPosition)) {
                     setBackgroundColor(colors[colorPoints.indexOf(color)])
+                    val currentIndex = colorPoints.indexOf(color)
+                    if(lastIndex != currentIndex){
+                        score += currentIndex
+                        lastIndex = currentIndex
+                    }
+                    if(lastIndex == 0) {
+                        score = 0
+                    }
                 }
-            }
-            var isInside = false
-            for (samplePoint in samplePoints) {
-                if (isSelected(samplePoint, ballPosition, 25f)) {
-                    isInside = true
-                    break
-                }
-            }
-            if (!isInside) {
-                this.ballPosition = PointF(lastBallPosition.x, lastBallPosition.y)
-            } else {
-                lastBallPosition = PointF(ballPosition.x, ballPosition.y)
             }
             invalidate()
         }
@@ -99,169 +122,7 @@ class Canvas(context: Context, attrs: AttributeSet): View(context, attrs) {
         })
     }
 
-    /**
-     * Función que agrega un traso al path
-     */
-    private fun setNewPathPoint(coordinate: PointF){
-        val dx = kotlin.math.abs(coordinate.x - lastCoor.x)
-        val dy = kotlin.math.abs(coordinate.y - lastCoor.y)
-        val tolerance = 5
-        if(dx >= tolerance || dy >= tolerance){
-            labyrinthPath.quadTo(this.lastCoor.x, this.lastCoor.y, (coordinate.x + lastCoor.x)/2,
-                (coordinate.y + lastCoor.y)/2)
-            this.lastCoor = coordinate
-        }
-        invalidate()
-    }
-
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-
-        if(samplePoints.size == 0) {
-            event?.run {
-                when (action) {
-                    ACTION_DOWN -> {
-                        labyrinthPath.reset()
-                        sidePaths = listOf()
-                        colorPoints = arrayListOf()
-                        labyrinthPath.moveTo(x, y)
-                        lastCoor = PointF(x, y)
-                        samplePoints = arrayListOf()
-                        setBackgroundColor(Color.WHITE)
-                    }
-                    ACTION_MOVE -> {
-                        setNewPathPoint(PointF(x, y))
-                        lastCoor = PointF(x, y)
-                    }
-                    ACTION_UP -> {
-                        sidePaths = getSidesRoadLines(labyrinthPath)
-                        getColorsPosition(labyrinthPath, 5)
-                        getSamplePoints(labyrinthPath, 25)
-                        samplePoints.first().let {
-                            ballPosition = PointF(it.x, it.y)
-                            lastBallPosition = PointF(it.x, it.y)
-                        }
-                    }
-                    else -> {
-                    }
-                }
-            }
-        }
-        return true
-    }
-
-    /**
-     * Funcion que obtiene las lineas continuas de los lados de las vias
-     * @param elementalRoadPath path elemental de la vía
-     */
-    private fun getSidesRoadLines(elementalRoadPath: Path): List<Path>{
-        val elementalRoadPathMeasure = PathMeasure(elementalRoadPath, false)
-        var distance = 0f
-        val sumFactor = 1f
-        val slope = FloatArray(2)
-        val position = FloatArray(2)
-        val halfRoadMeasure = 50f
-        val rightEdgePath = Path()
-        val leftEdgePath = Path()
-        var currentDisplacement = 0f
-        var lastRight = PointF()
-        var lastLeft = PointF()
-
-        var isFirstTime = true
-        while (distance < elementalRoadPathMeasure.length) {//Agrega los puntos de seleccion
-            elementalRoadPathMeasure.getPosTan(distance, position, slope)
-            val offset = getOffsetSignal(
-                true,
-                halfRoadMeasure,
-                atan2(slope[0], slope[1])
-            )
-            if (isFirstTime) {//Para mover el path al punto inicial
-                lastRight = PointF(position[0] + offset.x, position[1] - offset.y)
-                lastLeft = PointF(position[0] - offset.x, position[1] + offset.y)
-                rightEdgePath.moveTo(position[0] + offset.x, position[1] - offset.y)
-                leftEdgePath.moveTo(position[0] - offset.x, position[1] + offset.y)
-                isFirstTime = false
-                currentDisplacement += sumFactor
-                distance += sumFactor
-                continue
-            }
-            rightEdgePath.lineTo(position[0] + offset.x, position[1] - offset.y)
-            //setNewPathPoint(lastRight, PointF(position[0] + offset.x, position[1] - offset.y), rightEdgePath)
-            //setNewPathPoint(lastLeft, PointF(position[0] - offset.x, position[1] + offset.y), leftEdgePath)
-            leftEdgePath.lineTo(position[0] - offset.x, position[1] + offset.y)
-            lastRight = PointF(position[0] + offset.x, position[1] - offset.y)
-            lastLeft = PointF(position[0] - offset.x, position[1] + offset.y)
-            distance += sumFactor
-        }
-        return listOf(leftEdgePath, rightEdgePath)
-    }
-
-    /**
-     * Funcion que obtiene el offset mediante el cual se le hará el corrimiento al lado de la vida de la señal
-     */
-    private fun getOffsetSignal(
-        isRight: Boolean,
-        separation: Float,
-        currentAngle: Float
-    ): PointF {
-        val invert = when (isRight) {
-            true -> -1
-            false -> 1
-        }
-        val factorX = invert * separation * cos(currentAngle)
-        val factorY = invert * separation * sin(currentAngle)
-        return PointF(factorX, factorY)
-    }
-
-    /**
-     * Funcion que valida si un elemento fue seleccionado
-     */
-    private fun isSelected(touchCoor: PointF, referencePoint: PointF, radio: Float = 75f) =
-        magnitude(moveToZero(touchCoor, referencePoint)) <= radio
-
-    /**
-     * Halla la magnitud de cada una de las coordenadas con respecto al origen
-     */
-    private fun magnitude(coordinate: PointF) =
-        sqrt(coordinate.x.pow(2) + coordinate.y.pow(2))
-
-    /**
-     * Mueve dos puntos a una posicion (0, 0)
-     */
-    private fun moveToZero(initialPoint : PointF, finalPoint : PointF) : PointF {
-        return PointF(finalPoint.x - initialPoint.x,finalPoint.y - initialPoint.y)
-    }
-
-    /**
-     * Función que obtiene los puntos donde se posicionaran los puntos de colores
-     */
-    private fun getColorsPosition(path: Path, pointsNumber: Int){
-        val pathMeasure = PathMeasure(path, false)
-        val pathLength = pathMeasure.length
-        val sumFactor = pathLength / pointsNumber
-        var position = sumFactor
-        val positionPoint = FloatArray(2)
-        this.colorPoints.clear()
-        while (position <= pathLength){
-            pathMeasure.getPosTan(position, positionPoint, null)
-            this.colorPoints.add(PointF(positionPoint[0], positionPoint[1]))
-            position += sumFactor
-        }
-    }
-
-    /**
-     * Obtiene una muestra de puntos a lo largo del path principal para guiar la bola dentro del laberinto
-     */
-    private fun getSamplePoints(path: Path, ballRadius: Int){
-        val pathMeasure = PathMeasure(path, false)
-        val pathLength = pathMeasure.length
-        var position = 0f
-        val positionPoint = FloatArray(2)
-        this.samplePoints.clear()
-        while (position <= pathLength){
-            pathMeasure.getPosTan(position, positionPoint, null)
-            this.samplePoints.add(PointF(positionPoint[0], positionPoint[1]))
-            position += ballRadius
-        }
-    }
+    private fun isSelected(touchCoor: PointF, referencePoint: PointF, radio: Float = 100f) =
+        sqrt((referencePoint.x - touchCoor.x).pow(2)+(referencePoint.y - touchCoor.y).pow(2)) <= radio
 
 }
